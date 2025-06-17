@@ -1,5 +1,7 @@
 package Models;
 
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.Arrays;
 
 public class Seller implements Comparable<Seller> {
@@ -7,6 +9,10 @@ public class Seller implements Comparable<Seller> {
     private final String password;
     private Product[] products;
     int numOfProducts;
+    ConnectionUtil db =new ConnectionUtil();
+    Connection conn= db.connect_to_db("postgres","postgres","Matan25");
+
+
     public Seller(String name, String password) {
         this.name = name;
         this.password = password;
@@ -34,6 +40,25 @@ public class Seller implements Comparable<Seller> {
     public void addProduct(Product product) {
         expandList();
         products[numOfProducts++] = product;
+        int sellerID=0;
+        Statement getSellerID;
+        try {
+            String query = "SELECT * FROM sellers WHERE sellers.name = '"+this.name+"'";
+            getSellerID = conn.createStatement();
+            sellerID=getSellerID.executeQuery(query).getInt("id");
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        Statement addProduct;
+        try {
+            String query = STR."INSERT INTO products(id, name, category, price, packageprice, sellerid) VALUES (\{products.length},\{product.getName()},\{product.getCategory()},\{product.getPrice()},\{product.getPackagePrice()},\{sellerID});";
+            addProduct = conn.createStatement();
+            addProduct.executeUpdate(query);
+            System.out.println("row inserted");
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     private void expandList() {
@@ -60,5 +85,9 @@ public class Seller implements Comparable<Seller> {
     @Override
     public String toString(){
         return "Name: " + name;
+    }
+
+    public String getPassword() {
+        return this.password;
     }
 }

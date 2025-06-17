@@ -5,6 +5,8 @@ import java.util.Date;
 
 public class ShoppingCart {
     private Product[] products;
+
+
     private int numOfProducts;
     private Date date;
     private float totalPrice;

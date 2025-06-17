@@ -1,10 +1,15 @@
 package Models;
 
+import java.sql.Statement;
 import java.util.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
 
 public class BuyerManager {
     private Buyer[] buyers;
     private int numOfBuyers;
+    ConnectionUtil db =new ConnectionUtil();
+    Connection conn= db.connect_to_db("postgres","postgres","Matan25");
 
     public BuyerManager() {
         buyers = new Buyer[0];
@@ -43,6 +48,16 @@ public class BuyerManager {
     public void addBuyer(Buyer buyer) {
         expandBuyers();
         buyers[numOfBuyers++] = buyer;
+        Statement addBuyerStmt;
+        try {
+            String query = STR."INSERT INTO buyers(id, name, password, addrID) VALUES (\{buyers.length},\{buyer.getName()},\{buyer.getPassword()},\{buyer.getAddressID()});";
+            addBuyerStmt = conn.createStatement();
+            addBuyerStmt.executeUpdate(query);
+            System.out.println("row inserted");
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     public void expandBuyers() {

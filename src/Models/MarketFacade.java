@@ -54,7 +54,7 @@ public class MarketFacade {
         Seller seller = SellerFactory.createSeller();
         if (seller == null) return;
         sellerManager.addSeller(seller);
-        System.out.println(seller.getName() + " got added to the system as a seller.");
+        System.out.println(STR."\{seller.getName()} got added to the system as a seller.");
     }
 
     public void addBuyer() {
@@ -68,7 +68,7 @@ public class MarketFacade {
         } while (true);
         String password = UserInput.getPasswordFromUser();
         buyerManager.addBuyer(BuyerFactory.createBuyer(name, password, UserInput.getBuyerAddressFromUser()));
-        System.out.println(name + " got added to the system as a buyer.");
+        System.out.println(STR."\{name} got added to the system as a buyer.");
     }
 
     public void addProductToSeller() {

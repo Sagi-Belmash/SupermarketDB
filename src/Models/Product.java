@@ -4,14 +4,14 @@ public class Product {
     private final String name;
     private final float price;
     private final int serialNum;
-    private static int numOfProducts = 0;
+
     private final Category category;
     private final float packagePrice;
 
-    public Product(String name, float price, Category category, float packagePrice) {
+    public Product(String name, float price, Category category, float packagePrice, int serialNum) {
         this.name = name;
         this.price = price;
-        this.serialNum = numOfProducts++;
+        this.serialNum = serialNum;
         this.category = category;
         this.packagePrice = packagePrice;
     }

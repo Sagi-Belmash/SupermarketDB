@@ -1,10 +1,14 @@
 package Models;
 
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.Arrays;
 
 public class SellerManager {
     private Seller[] sellers;
     private int numOfSellers;
+    ConnectionUtil db =new ConnectionUtil();
+    Connection conn= db.connect_to_db("postgres","postgres","Matan25");
 
     public SellerManager() {
         sellers = new Seller[0];
@@ -14,6 +18,15 @@ public class SellerManager {
     public void addSeller(Seller seller) {
         expandSellers();
         sellers[numOfSellers++] = seller;
+        Statement addSeller;
+        try {
+            String query = STR."INSERT INTO sellers(id, name, password) VALUES (\{sellers.length},\{seller.getName()},\{seller.getPassword()});";
+            addSeller = conn.createStatement();
+            addSeller.executeUpdate(query);
+            System.out.println("row inserted");
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     public boolean sellerExists(String name) {

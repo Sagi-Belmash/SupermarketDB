@@ -1,22 +1,33 @@
 package Models;
 
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.Arrays;
 
 public class Buyer implements Comparable<Buyer> {
     private final String name;
     private final String password;
     private final Address address;
+    private final int addressID;
     private ShoppingCart shoppingCart;
     private ShoppingCart[] orders;
     private int numOfOrders;
+    private static ConnectionUtil db =new ConnectionUtil();
+    private static Connection conn= db.connect_to_db("postgres","postgres","Matan25");
 
-    public Buyer(String name, String password, Address address) {
+
+    public Buyer(String name, String password, Address address, int addressID) {
         this.name = name;
         this.password = password;
         this.address = address;
-        this.shoppingCart = ShoppingCartFactory.createShoppingCart(this);
+        this.addressID = addressID;
+        this.shoppingCart = ShoppingCartFactory.createNewShoppingCart(this);
         this.orders = new ShoppingCart[0];
         this.numOfOrders = 0;
+    }
+
+    public int getAddressID() {
+        return addressID;
     }
 
     public String getName() {
@@ -31,8 +42,49 @@ public class Buyer implements Comparable<Buyer> {
         return ShoppingCartFactory.createShoppingCart(shoppingCart);
     }
 
-    public void addItemToCart(Product product) {
+    public void addItemToCart(Product product, int... quantity) {
         shoppingCart.addProduct(product);
+        int buyerID=0;
+        Statement getBuyerID;
+        try {
+            String query = "SELECT * FROM buyers WHERE buyers.name = '"+this.name+"'";
+            getBuyerID = conn.createStatement();
+            buyerID=getBuyerID.executeQuery(query).getInt("id");
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        int cartID=0;
+        Statement getCartID;
+        try {
+            String query = "SELECT * FROM carts WHERE buyerid = '"+buyerID+"' HAVING id=max(id)";
+            getCartID = conn.createStatement();
+            cartID=getCartID.executeQuery(query).getInt("id");
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        int productID=0;
+        Statement getProdID;
+        try {
+            String query = "SELECT * FROM sellers WHERE products.name = '"+ product.getName() +"'";
+            getProdID = conn.createStatement();
+            productID=getProdID.executeQuery(query).getInt("id");
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        Statement addProductToCart;
+        try {
+            String query;
+            if (quantity.length == 0) {
+                query = STR."INSERT INTO cartsproducts(CID, PID, amount) VALUES (\{cartID},\{productID},1);";
+            }else
+                query = STR."INSERT INTO cartsproducts(CID, PID, amount) VALUES (\{cartID},\{productID},\{quantity});";
+            addProductToCart = conn.createStatement();
+            addProductToCart.executeUpdate(query);
+            System.out.println("row inserted");
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     public void purchase() {
@@ -40,11 +92,11 @@ public class Buyer implements Comparable<Buyer> {
             if (shoppingCart.getProducts().length == 0) {
                 throw new EmptyCartException();
             }
-            System.out.println("Total price: " + shoppingCart.getTotal() + "ILS");
+            System.out.println(STR."Total price: \{shoppingCart.getTotal()}ILS");
             shoppingCart.setDate();
             expandList();
             orders[numOfOrders++] = shoppingCart;
-            shoppingCart = ShoppingCartFactory.createShoppingCart(this);
+            shoppingCart = ShoppingCartFactory.createNewShoppingCart(this);
         } catch (EmptyCartException e) {
             System.out.println(e.getMessage());
         }
@@ -67,7 +119,7 @@ public class Buyer implements Comparable<Buyer> {
     }
 
     public ShoppingCart getPrevOrder(int orderNum) {
-        return ShoppingCartFactory.createShoppingCart(orders[orderNum]);
+        return ShoppingCartFactory.getPastCart(orderNum);
     }
 
     public void setCart(ShoppingCart shoppingCart) {
@@ -100,6 +152,9 @@ public class Buyer implements Comparable<Buyer> {
     }
 
 
+    public String getPassword() {
+        return password;
+    }
 }
 
 
