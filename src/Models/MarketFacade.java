@@ -1,5 +1,6 @@
 package Models;
 
+import java.sql.SQLException;
 import java.util.*;
 
 import Observers.Action1;
@@ -14,12 +15,12 @@ public class MarketFacade {
     private ArrayListHistory listHistory;
 
 
-    private MarketFacade() {
-        this.buyerManager = new BuyerManager();
-        this.sellerManager = new SellerManager();
+    private MarketFacade() throws SQLException {
+        buyerManager = new BuyerManager();
+        sellerManager = new SellerManager();
         observers = new LinkedHashSet<>();
         attachObservers();
-        this.listHistory = new ArrayListHistory();
+        listHistory = new ArrayListHistory();
     }
 
     private void attachObservers() {
@@ -33,13 +34,13 @@ public class MarketFacade {
         }
     }
 
-    public static MarketFacade getInstance() {
+    public static MarketFacade getInstance() throws SQLException {
         if (instance == null)
             instance = new MarketFacade();
         return instance;
     }
 
-    public void generateExamples() {
+    public void generateExamples() throws SQLException {
         buyerManager.addBuyer(BuyerFactory.createBuyer("Momo", "1", AddressFactory.createAddress("1", 1, "1", "1")));
         buyerManager.addBuyer(BuyerFactory.createBuyer("Lolo", "1", AddressFactory.createAddress("1", 1, "1", "1")));
         buyerManager.addBuyer(BuyerFactory.createBuyer("loLO", "1", AddressFactory.createAddress("1", 1, "1", "1")));
@@ -50,14 +51,14 @@ public class MarketFacade {
         buyerManager.getBuyer("Momo").addItemToCart(sellerManager.getSeller("Bobo").getProductByName("YoYo"));
     }
 
-    public void addSeller() {
+    public void addSeller() throws SQLException {
         Seller seller = SellerFactory.createSeller();
         if (seller == null) return;
         sellerManager.addSeller(seller);
         System.out.println(STR."\{seller.getName()} got added to the system as a seller.");
     }
 
-    public void addBuyer() {
+    public void addBuyer() throws SQLException {
         String name;
         do {
             name = UserInput.getBuyerNameFromUser();
@@ -184,14 +185,15 @@ public class MarketFacade {
             return;
         }
         Buyer buyer;
-        do {
+        while(true) {
             buyer = chooseBuyer();
             if (buyer == null) return;
+            if (buyer.hasPrevOrders()) break;
             String answer = UserInput.getUserChoice("This buyer doesn't have previous orders, do you want to choose another buyer? (Y/N)");
             if (answer.equals("N")) {
                 return;
             }
-        } while (!buyer.hasPrevOrders());
+        }
         if (!buyer.getShoppingCart().isEmpty()) {
             String answer = UserInput.getUserChoice("The selected buyer already has a cart, do you wish to replace it with a previous order? (Y/N)");
             if (answer.equals("N")) {

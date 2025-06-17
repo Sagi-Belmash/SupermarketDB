@@ -5,18 +5,27 @@ import java.util.Date;
 
 public class ShoppingCart {
     private Product[] products;
-
-
     private int numOfProducts;
     private Date date;
     private float totalPrice;
     private final Buyer buyer;
+    private int id;
 
-    public ShoppingCart(Buyer buyer) {
+    public ShoppingCart(Buyer buyer, int id) {
         products = new Product[0];
         numOfProducts = 0;
         totalPrice = 0;
         this.buyer = buyer;
+        this.id = id;
+    }
+
+    public ShoppingCart(Buyer buyer, Product[] products, Date date, float totalPrice, int id) {
+        this.buyer = buyer;
+        this.products = Arrays.copyOf(products, products.length);
+        this.date = date;
+        this.totalPrice = totalPrice;
+        this.numOfProducts = products.length;
+        this.id = id;
     }
 
     public ShoppingCart(ShoppingCart other) {
@@ -24,7 +33,9 @@ public class ShoppingCart {
         numOfProducts = other.numOfProducts;
         totalPrice = other.totalPrice;
         buyer = other.buyer;
+        this.id = other.id;
     }
+
 
     public void addProduct(Product product) {
         expandList();
@@ -54,6 +65,8 @@ public class ShoppingCart {
     public float getTotal() {
         return totalPrice;
     }
+
+    public int getID() { return id; }
 
     @Override
     public String toString() {

@@ -2,6 +2,8 @@ package Commands;
 
 import Models.MarketFacade;
 
+import java.sql.SQLException;
+
 public class generateExamplesCommand implements Command {
     private MarketFacade market;
 
@@ -10,7 +12,7 @@ public class generateExamplesCommand implements Command {
     }
 
     @Override
-    public void execute() {
+    public void execute() throws SQLException {
         market.generateExamples();
     }
 }

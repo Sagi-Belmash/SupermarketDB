@@ -1,19 +1,43 @@
 package Models;
 
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
-import java.sql.Connection;
-import java.sql.DriverManager;
 
 public class BuyerManager {
     private Buyer[] buyers;
-    private int numOfBuyers;
-    ConnectionUtil db =new ConnectionUtil();
-    Connection conn= db.connect_to_db("postgres","postgres","Matan25");
+    private int numOfBuyers = 0;
+    ConnectionUtil db = new ConnectionUtil();
+    Connection conn = db.connect_to_db("Supermarket","postgres","070103Sb");
 
-    public BuyerManager() {
+    public BuyerManager() throws SQLException {
         buyers = new Buyer[0];
-        numOfBuyers = 0;
+        Statement stBuyers = conn.createStatement();
+        Statement stAddress = conn.createStatement();
+        ResultSet rsBuyers = stBuyers.executeQuery("SELECT * FROM public.buyers");
+
+        // Print rows
+        String name;
+        String password;
+        int addressID;
+        String country;
+        String city;
+        String street;
+        int building;
+        ResultSet rsAddress;
+        while (rsBuyers.next()) {
+            name = rsBuyers.getString("name");
+            password = rsBuyers.getString("password");
+            addressID = rsBuyers.getInt("addrID");
+            rsAddress = stAddress.executeQuery("SELECT * FROM public.addresses WHERE id = " + addressID);
+            rsAddress.next();
+            country = rsAddress.getString("country");
+            city = rsAddress.getString("city");
+            street = rsAddress.getString("street");
+            building = rsAddress.getInt("building");
+            expandBuyers();
+            buyers[numOfBuyers++] = new Buyer(name, password, new Address(country, city, street, building), addressID);
+            System.out.println();
+        };
     }
 
     public boolean areThereBuyers() {

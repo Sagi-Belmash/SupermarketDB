@@ -2,26 +2,28 @@ package Models;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
 
 public class ShoppingCartFactory {
     static ConnectionUtil db =new ConnectionUtil();
-    static Connection conn= db.connect_to_db("postgres","postgres","Matan25");
-    public static ShoppingCart createNewShoppingCart(Buyer buyer){
+    static Connection conn= db.connect_to_db("Supermarket","postgres","070103Sb");
+    public static ShoppingCart createNewShoppingCart(Buyer buyer) throws SQLException {
         int buyerID=0;
         Statement getBuyerID;
         try {
-            String query = "SELECT * FROM buyers WHERE buyers.name = '"+buyer.getName()+"'";
+            String query = "SELECT * FROM public.buyers WHERE public.buyers.name = '"+buyer.getName()+"'";
             getBuyerID = conn.createStatement();
-            buyerID=getBuyerID.executeQuery(query).getInt("id");
+            ResultSet rs = getBuyerID.executeQuery(query);
+            rs.next();
+            buyerID=rs.getInt("id");
         } catch (Exception e) {
             System.out.println(e);
         }
         Statement insertNewCart;
-        Date today = new Date();
         try {
-            String query = STR."INSERT INTO carts(date,totalprice,buyerid) VALUES (\{today},0,\{buyerID});";
+            String query = STR."INSERT INTO public.carts(buyerid) VALUES (\{buyerID});";
             insertNewCart = conn.createStatement();
             insertNewCart.executeUpdate(query);
             System.out.println("row inserted");
@@ -29,27 +31,32 @@ public class ShoppingCartFactory {
         } catch (Exception e) {
             System.out.println(e);
         }
-        return new ShoppingCart(buyer);
+        Statement getCartID = conn.createStatement();
+        ResultSet rs = getCartID.executeQuery("SELECT MAX(id) FROM public.carts WHERE buyerID = " + buyerID);
+        rs.next();
+        return new ShoppingCart(buyer, rs.getInt(1));
     }
-    public static ShoppingCart createExistingShoppingCart(Buyer buyer){
-        return new ShoppingCart(buyer);
+    public static ShoppingCart createExistingShoppingCart(Buyer buyer, int cartID){
+        return new ShoppingCart(buyer, cartID);
     }
     public static ShoppingCart createShoppingCart(ShoppingCart otherShoppingCart){
         return new ShoppingCart(otherShoppingCart);
     }
 
-    public static ShoppingCart getPastCart(int orderNum){
+    public static ShoppingCart getPastCart(int cartID){
 
         ShoppingCart pastCart=null;
         int cartBuyerID=0;
         Product p;
         try(Statement getPastCartFromDB = conn.createStatement()){
-            String resCartBuyerIDQuery = STR."SELECT * FROM carts WHERE id=\{orderNum});";
-            cartBuyerID=getPastCartFromDB.executeQuery(resCartBuyerIDQuery).getInt("buyerID");
-            pastCart= createExistingShoppingCart(BuyerFactory.getBuyerFromDB(cartBuyerID));
+            String resCartBuyerIDQuery = STR."SELECT * FROM public.carts WHERE id = " + cartID;
+            ResultSet rs = getPastCartFromDB.executeQuery(resCartBuyerIDQuery);
+            rs.next();
+            cartBuyerID = rs.getInt("buyerID");
+            pastCart = createExistingShoppingCart(BuyerFactory.getBuyerFromDB(cartBuyerID), cartID);
 
-            String resCartProductIDQuery = STR."SELECT * FROM products WHERE id IN (SELECT PID FROM cartsProducts WHERE CID='\{orderNum}')";
-            ResultSet res =getPastCartFromDB.executeQuery(resCartProductIDQuery);
+            String resCartProductIDQuery = STR."SELECT * FROM public.products WHERE id IN (SELECT PID FROM public.cartsProducts WHERE CID='\{cartID}')";
+            ResultSet res = getPastCartFromDB.executeQuery(resCartProductIDQuery);
             while(res.next()){
                 int productID=res.getInt("id");
                 String productName=res.getString("name");

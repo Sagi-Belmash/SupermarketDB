@@ -1,6 +1,8 @@
 package Models;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
@@ -8,11 +10,22 @@ public class SellerManager {
     private Seller[] sellers;
     private int numOfSellers;
     ConnectionUtil db =new ConnectionUtil();
-    Connection conn= db.connect_to_db("postgres","postgres","Matan25");
+    Connection conn= db.connect_to_db("Supermarket","postgres","070103Sb");
 
-    public SellerManager() {
+    public SellerManager() throws SQLException {
         sellers = new Seller[0];
-        numOfSellers = 0;
+        Statement st = conn.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM public.sellers");
+
+        // Print rows
+        String name;
+        String password;
+        while (rs.next()) {
+            name = rs.getString("name");
+            password = rs.getString("password");
+            expandSellers();
+            sellers[numOfSellers++] = new Seller(name, password);
+        };
     }
 
     public void addSeller(Seller seller) {
@@ -20,7 +33,7 @@ public class SellerManager {
         sellers[numOfSellers++] = seller;
         Statement addSeller;
         try {
-            String query = STR."INSERT INTO sellers(id, name, password) VALUES (\{sellers.length},\{seller.getName()},\{seller.getPassword()});";
+            String query = STR."INSERT INTO public.sellers(id, name, password) VALUES (\{sellers.length},\{seller.getName()},\{seller.getPassword()});";
             addSeller = conn.createStatement();
             addSeller.executeUpdate(query);
             System.out.println("row inserted");

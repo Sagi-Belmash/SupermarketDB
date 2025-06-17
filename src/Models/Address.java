@@ -1,12 +1,13 @@
 package Models;
 
 public class Address {
+
     private final String street;
     private final int building;
     private final String city;
     private final String country;
 
-    public Address(String street, int building, String city, String country) {
+    public Address(String country, String city, String street, int building) {
         this.street = street;
         this.building = building;
         this.city = city;

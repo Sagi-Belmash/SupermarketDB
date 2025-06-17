@@ -9,9 +9,9 @@ public class ConnectionUtil {
         Connection conn = null;
         try {
             Class.forName("org.postgresql.Driver");
-            conn = DriverManager.getConnection("jdbc:postgresql://localhost:5432/" + dbname, user, pass);
+            conn = DriverManager.getConnection("jdbc:postgresql://localhost:5432/Supermarket?currentSchema=public" + dbname, user, pass);
             if (conn != null) {
-                System.out.println("Connection Established");
+                System.out.println("Connection Established")    ;
             } else {
                 System.out.println("Connection Failed");
             }

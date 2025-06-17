@@ -1,8 +1,11 @@
 package Models;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Date;
 
 public class Buyer implements Comparable<Buyer> {
     private final String name;
@@ -13,17 +16,44 @@ public class Buyer implements Comparable<Buyer> {
     private ShoppingCart[] orders;
     private int numOfOrders;
     private static ConnectionUtil db =new ConnectionUtil();
-    private static Connection conn= db.connect_to_db("postgres","postgres","Matan25");
+    private static Connection conn= db.connect_to_db("Supermarkte","postgres","070103Sb");
 
 
-    public Buyer(String name, String password, Address address, int addressID) {
+    public Buyer(String name, String password, Address address, int addressID) throws SQLException {
         this.name = name;
         this.password = password;
         this.address = address;
         this.addressID = addressID;
         this.shoppingCart = ShoppingCartFactory.createNewShoppingCart(this);
-        this.orders = new ShoppingCart[0];
-        this.numOfOrders = 0;
+
+        orders = new ShoppingCart[0];
+        numOfOrders = 0;
+        Statement st = conn.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM public.buyers WHERE name = '" + name + "'");
+        rs.next();
+        rs = st.executeQuery("SELECT * FROM public.carts WHERE buyerID = " + rs.getInt("id"));
+        Statement stProducts = conn.createStatement();
+        float totalPrice;
+        Date date;
+        int id;
+        Product[] products;
+        int numOfProducts;
+        while (rs.next()) {
+            expandList();
+            numOfProducts = 0;
+            id = rs.getInt("id");
+            ResultSet rsCountProducts = stProducts.executeQuery("SELECT COUNT(*) FROM public.cartsProducts WHERE CID = " + rs.getInt("id"));
+            rsCountProducts.next();
+            products = new Product[rsCountProducts.getInt(1)];
+            ResultSet rsProducts = stProducts.executeQuery("SELECT * FROM public.cartsProducts WHERE CID = " + id);
+            while (rsProducts.next()) {
+                products[numOfProducts++] = ProductFactory.getProductById(rsProducts.getInt("PID"));
+                System.out.println("Bye!!!");
+            }
+            totalPrice = rs.getFloat("totalPrice");
+            date = rs.getDate("date");
+            orders[numOfOrders++] = new ShoppingCart(this, products, date, totalPrice, id);
+        }
     }
 
     public int getAddressID() {
@@ -47,7 +77,7 @@ public class Buyer implements Comparable<Buyer> {
         int buyerID=0;
         Statement getBuyerID;
         try {
-            String query = "SELECT * FROM buyers WHERE buyers.name = '"+this.name+"'";
+            String query = "SELECT * FROM public.buyers WHERE public.buyers.name = '"+this.name+"'";
             getBuyerID = conn.createStatement();
             buyerID=getBuyerID.executeQuery(query).getInt("id");
         } catch (Exception e) {
@@ -56,7 +86,7 @@ public class Buyer implements Comparable<Buyer> {
         int cartID=0;
         Statement getCartID;
         try {
-            String query = "SELECT * FROM carts WHERE buyerid = '"+buyerID+"' HAVING id=max(id)";
+            String query = "SELECT * FROM public.carts WHERE buyerid = '"+buyerID+"' HAVING id=max(id)";
             getCartID = conn.createStatement();
             cartID=getCartID.executeQuery(query).getInt("id");
         } catch (Exception e) {
@@ -75,9 +105,9 @@ public class Buyer implements Comparable<Buyer> {
         try {
             String query;
             if (quantity.length == 0) {
-                query = STR."INSERT INTO cartsproducts(CID, PID, amount) VALUES (\{cartID},\{productID},1);";
+                query = STR."INSERT INTO public.cartsProducts(CID, PID, amount) VALUES (\{cartID},\{productID},1);";
             }else
-                query = STR."INSERT INTO cartsproducts(CID, PID, amount) VALUES (\{cartID},\{productID},\{quantity});";
+                query = STR."INSERT INTO public.cartsProducts(CID, PID, amount) VALUES (\{cartID},\{productID},\{quantity});";
             addProductToCart = conn.createStatement();
             addProductToCart.executeUpdate(query);
             System.out.println("row inserted");
@@ -97,7 +127,7 @@ public class Buyer implements Comparable<Buyer> {
             expandList();
             orders[numOfOrders++] = shoppingCart;
             shoppingCart = ShoppingCartFactory.createNewShoppingCart(this);
-        } catch (EmptyCartException e) {
+        } catch (EmptyCartException | SQLException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -119,7 +149,7 @@ public class Buyer implements Comparable<Buyer> {
     }
 
     public ShoppingCart getPrevOrder(int orderNum) {
-        return ShoppingCartFactory.getPastCart(orderNum);
+        return ShoppingCartFactory.getPastCart(orders[orderNum].getID());
     }
 
     public void setCart(ShoppingCart shoppingCart) {

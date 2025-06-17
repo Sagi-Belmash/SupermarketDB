@@ -1,24 +1,25 @@
 
 import Models.MenuInvoker;
 
+import java.sql.SQLException;
 import java.util.*;
 
 private static Scanner reader;
 private static MenuInvoker invoker;
 
 
-public static void main() {
+public static void main() throws SQLException {
     run();
     reader.close();
 }
 
-public static void run() {
+public static void run() throws SQLException {
     reader = new Scanner(System.in);
     invoker = MenuInvoker.getInstance();
     menu();
 }
 
-public static void menu() throws InputMismatchException {
+public static void menu() throws InputMismatchException, SQLException {
     int input = 0;
     do {
         System.out.println();

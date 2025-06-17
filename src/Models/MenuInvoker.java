@@ -2,6 +2,7 @@ package Models;
 
 import Commands.*;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 
 public class MenuInvoker {
@@ -9,7 +10,7 @@ public class MenuInvoker {
     private static MarketFacade market;
     private static MenuInvoker instance;
 
-    private MenuInvoker() {
+    private MenuInvoker() throws SQLException {
         market = MarketFacade.getInstance();
         commands.put(-1, new generateExamplesCommand(market));
         commands.put(0, new exitCommand());
@@ -31,7 +32,7 @@ public class MenuInvoker {
         commands.put(105, new restoreArrayListCommand(market));
     }
 
-    public void executeCommand(int option) {
+    public void executeCommand(int option) throws SQLException {
         Command command = commands.get(option);
         if (command != null) {
             command.execute();
@@ -40,7 +41,7 @@ public class MenuInvoker {
         }
     }
 
-    public static MenuInvoker getInstance() {
+    public static MenuInvoker getInstance() throws SQLException {
         if (instance == null)
             instance = new MenuInvoker();
         return instance;

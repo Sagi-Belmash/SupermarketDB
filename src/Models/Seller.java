@@ -1,6 +1,8 @@
 package Models;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
@@ -9,15 +11,34 @@ public class Seller implements Comparable<Seller> {
     private final String password;
     private Product[] products;
     int numOfProducts;
-    ConnectionUtil db =new ConnectionUtil();
-    Connection conn= db.connect_to_db("postgres","postgres","Matan25");
+    ConnectionUtil db  =new ConnectionUtil();
+    Connection conn = db.connect_to_db("Supermarket","postgres","070103Sb");
 
 
-    public Seller(String name, String password) {
+    public Seller(String name, String password) throws SQLException {
         this.name = name;
         this.password = password;
         products = new Product[0];
         numOfProducts = 0;
+        Statement st = conn.createStatement();
+        ResultSet rs = st.executeQuery("SELECT * FROM public.sellers WHERE name = '" + name + "'");
+        rs.next();
+        rs = st.executeQuery("SELECT * FROM public.products WHERE sellerID = " + rs.getInt("id"));
+        String prodName;
+        float prodPrice;
+        float prodPackagePrice;
+        Category prodCategory;
+        int prodSerialNum;
+
+        while (rs.next()) {
+            prodName = rs.getString("name");
+            prodPrice = rs.getFloat("price");
+            prodPackagePrice = rs.getFloat("packagePrice");
+            prodCategory = Models.Category.valueOf(rs.getString("category"));
+            prodSerialNum = rs.getInt("id");
+            expandList();
+            products[numOfProducts++] = new Product(prodName, prodPrice, prodCategory, prodPackagePrice, prodSerialNum);
+        };
     }
 
     public String getName() {
@@ -43,7 +64,7 @@ public class Seller implements Comparable<Seller> {
         int sellerID=0;
         Statement getSellerID;
         try {
-            String query = "SELECT * FROM sellers WHERE sellers.name = '"+this.name+"'";
+            String query = "SELECT * FROM public.sellers WHERE public.sellers.name = '"+this.name+"'";
             getSellerID = conn.createStatement();
             sellerID=getSellerID.executeQuery(query).getInt("id");
         } catch (Exception e) {
@@ -51,7 +72,7 @@ public class Seller implements Comparable<Seller> {
         }
         Statement addProduct;
         try {
-            String query = STR."INSERT INTO products(id, name, category, price, packageprice, sellerid) VALUES (\{products.length},\{product.getName()},\{product.getCategory()},\{product.getPrice()},\{product.getPackagePrice()},\{sellerID});";
+            String query = STR."INSERT INTO public.products(id, name, category, price, packageprice, sellerid) VALUES (\{products.length},\{product.getName()},\{product.getCategory()},\{product.getPrice()},\{product.getPackagePrice()},\{sellerID});";
             addProduct = conn.createStatement();
             addProduct.executeUpdate(query);
             System.out.println("row inserted");
