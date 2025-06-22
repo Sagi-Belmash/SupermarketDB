@@ -1,38 +1,24 @@
 package Models;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Date;
+import java.sql.*;
 
 public class ShoppingCartFactory {
     static ConnectionUtil db =new ConnectionUtil();
-    static Connection conn= db.connect_to_db("Supermarket","postgres","070103Sb");
+    static Connection conn= db.connect_to_db("Supermarket","postgres","Matan25");
     public static ShoppingCart createNewShoppingCart(Buyer buyer) throws SQLException {
-        int buyerID=0;
-        Statement getBuyerID;
         try {
-            String query = "SELECT * FROM public.buyers WHERE public.buyers.name = '"+buyer.getName()+"'";
-            getBuyerID = conn.createStatement();
-            ResultSet rs = getBuyerID.executeQuery(query);
-            rs.next();
-            buyerID=rs.getInt("id");
+            String query = "INSERT INTO public.carts(BName) VALUES (?);";
+            PreparedStatement psNewCart = conn.prepareStatement(query);
+            psNewCart.setString(1, buyer.getName());
+            psNewCart.executeUpdate();
+            System.out.println("Added new cart to database");
         } catch (Exception e) {
             System.out.println(e);
         }
-        Statement insertNewCart;
-        try {
-            String query = STR."INSERT INTO public.carts(buyerid) VALUES (\{buyerID});";
-            insertNewCart = conn.createStatement();
-            insertNewCart.executeUpdate(query);
-            System.out.println("row inserted");
-
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        Statement getCartID = conn.createStatement();
-        ResultSet rs = getCartID.executeQuery("SELECT MAX(id) FROM public.carts WHERE buyerID = " + buyerID);
+        String query="SELECT MAX(id) FROM public.carts WHERE BName = ?;";
+        PreparedStatement psCartID = conn.prepareStatement(query);
+        psCartID.setString(1, buyer.getName());
+        ResultSet rs = psCartID.executeQuery();
         rs.next();
         return new ShoppingCart(buyer, rs.getInt(1));
     }
@@ -44,26 +30,28 @@ public class ShoppingCartFactory {
     }
 
     public static ShoppingCart getPastCart(int cartID){
-
         ShoppingCart pastCart=null;
-        int cartBuyerID=0;
-        Product p;
-        try(Statement getPastCartFromDB = conn.createStatement()){
-            String resCartBuyerIDQuery = STR."SELECT * FROM public.carts WHERE id = " + cartID;
-            ResultSet rs = getPastCartFromDB.executeQuery(resCartBuyerIDQuery);
-            rs.next();
-            cartBuyerID = rs.getInt("buyerID");
-            pastCart = createExistingShoppingCart(BuyerFactory.getBuyerFromDB(cartBuyerID), cartID);
+        String cartBuyerName="";
+        try{
+            String resCartID = "SELECT * FROM carts WHERE id = ?;";
+            PreparedStatement psGetCartID = conn.prepareStatement(resCartID);
+            psGetCartID.setInt(1,cartID);
+            ResultSet rsGetCartID = psGetCartID.executeQuery();
+            rsGetCartID.next();
+            cartBuyerName = rsGetCartID.getString("BName");
+            pastCart = createExistingShoppingCart(BuyerFactory.getBuyerFromDB(cartBuyerName), cartID);
 
-            String resCartProductIDQuery = STR."SELECT * FROM public.products WHERE id IN (SELECT PID FROM public.cartsProducts WHERE CID='\{cartID}')";
-            ResultSet res = getPastCartFromDB.executeQuery(resCartProductIDQuery);
+            String resProductIDInCart ="SELECT * FROM public.products WHERE id IN (SELECT PID FROM public.cartsProducts WHERE CID=?);";
+            PreparedStatement psProductIDInCart = conn.prepareStatement(resProductIDInCart);
+            psProductIDInCart.setInt(1,cartID);
+            ResultSet res=psProductIDInCart.executeQuery();
             while(res.next()){
-                int productID=res.getInt("id");
                 String productName=res.getString("name");
                 Category productCategory=res.getObject(3,Category.class);
                 float productPrice=res.getFloat("price");
                 float productPackagePrice=res.getFloat("packagePrice");
-                pastCart.addProduct(ProductFactory.createProduct(productName,productPrice,productCategory,productPackagePrice));
+                String productSellerName=res.getString("SName");
+                pastCart.addProduct(ProductFactory.createProduct(productName,productPrice,productCategory,productPackagePrice,productSellerName));
             }
         }
         catch (Exception e){

@@ -47,15 +47,15 @@ public class MarketFacade {
         sellerManager.addSeller(SellerFactory.createSeller("Bobo", "1"));
         sellerManager.addSeller(SellerFactory.createSeller("dODO", "1"));
         sellerManager.addSeller(SellerFactory.createSeller("Dodo", "1"));
-        sellerManager.getSeller("Bobo").addProduct(ProductFactory.createProduct("YoYo", 10, Category.CHILD, 5));
-        buyerManager.getBuyer("Momo").addItemToCart(sellerManager.getSeller("Bobo").getProductByName("YoYo"));
+        sellerManager.getSeller("Bobo").addProduct(ProductFactory.createProduct("YoYo", 10, Category.CHILD, 5,"Bobo"));
+        buyerManager.getBuyer("Momo").addItemToCart(sellerManager.getSeller("Bobo").getProductByName("YoYo","Bobo"));
     }
 
     public void addSeller() throws SQLException {
         Seller seller = SellerFactory.createSeller();
-        if (seller == null) return;
+        if (seller == null || seller.getName()==null) return;
         sellerManager.addSeller(seller);
-        System.out.println(STR."\{seller.getName()} got added to the system as a seller.");
+        System.out.println(seller.getName()+" got added to the system as a seller.");
     }
 
     public void addBuyer() throws SQLException {
@@ -64,12 +64,13 @@ public class MarketFacade {
             name = UserInput.getBuyerNameFromUser();
             if (name.isEmpty()) return;
             if (!buyerManager.buyerExists(name)) {
+                System.out.println("Buyer with name " + name + " already exists");
                 break;
             }
         } while (true);
         String password = UserInput.getPasswordFromUser();
         buyerManager.addBuyer(BuyerFactory.createBuyer(name, password, UserInput.getBuyerAddressFromUser()));
-        System.out.println(STR."\{name} got added to the system as a buyer.");
+        System.out.println(name+" got added to the system as a buyer.");
     }
 
     public void addProductToSeller() {
@@ -84,7 +85,7 @@ public class MarketFacade {
             System.out.println("This product is already in the sellers list. Please choose another:");
             productName = UserInput.getProductNameFromUser();
         }
-        seller.addProduct(ProductFactory.createProduct(productName));
+        seller.addProduct(ProductFactory.createProduct(productName,seller.getName()));
     }
 
     public void addProductBuyer() {
@@ -113,7 +114,7 @@ public class MarketFacade {
             System.out.println("You chose a product that this seller does not offer.\n" +
                     "Please choose another or enter \".\" to return to the main menu.");
         } while (true);
-        buyer.addItemToCart(seller.getProductByName(productName));
+        buyer.addItemToCart(seller.getProductByName(productName,seller.getName()));
         System.out.println("The item was added to the buyer's cart.");
     }
 

@@ -7,12 +7,11 @@ public class BuyerManager {
     private Buyer[] buyers;
     private int numOfBuyers = 0;
     ConnectionUtil db = new ConnectionUtil();
-    Connection conn = db.connect_to_db("Supermarket","postgres","070103Sb");
+    Connection conn = db.connect_to_db("Supermarket","postgres","Matan25");
 
     public BuyerManager() throws SQLException {
         buyers = new Buyer[0];
         Statement stBuyers = conn.createStatement();
-        Statement stAddress = conn.createStatement();
         ResultSet rsBuyers = stBuyers.executeQuery("SELECT * FROM public.buyers");
 
         // Print rows
@@ -23,19 +22,22 @@ public class BuyerManager {
         String city;
         String street;
         int building;
-        ResultSet rsAddress;
         while (rsBuyers.next()) {
             name = rsBuyers.getString("name");
             password = rsBuyers.getString("password");
             addressID = rsBuyers.getInt("addrID");
-            rsAddress = stAddress.executeQuery("SELECT * FROM public.addresses WHERE id = " + addressID);
-            rsAddress.next();
-            country = rsAddress.getString("country");
-            city = rsAddress.getString("city");
-            street = rsAddress.getString("street");
-            building = rsAddress.getInt("building");
+
+            String query ="SELECT * FROM public.addresses WHERE id = ?;";
+            PreparedStatement psAddressID = conn.prepareStatement(query);
+            psAddressID.setInt(1, addressID);
+            ResultSet rsAddressID = psAddressID.executeQuery();
+            rsAddressID.next();
+            country = rsAddressID.getString("country");
+            city = rsAddressID.getString("city");
+            street = rsAddressID.getString("street");
+            building = rsAddressID.getInt("building");
             expandBuyers();
-            buyers[numOfBuyers++] = new Buyer(name, password, new Address(country, city, street, building), addressID);
+            buyers[numOfBuyers++] = new Buyer(name, password, new Address(country, city, street, building,addressID), addressID);
             System.out.println();
         };
     }
@@ -61,10 +63,16 @@ public class BuyerManager {
 
 
     public boolean buyerExists(String name) {
-        for (int i = 0; i < numOfBuyers; i++) {
-            if (buyers[i].getName().equals(name)) {
+        try{
+            String query = "SELECT * FROM public.buyers WHERE name = ?;";
+            PreparedStatement psExistingBuyer = conn.prepareStatement(query);
+            psExistingBuyer.setString(1, name);
+            ResultSet rsExistingBuyer = psExistingBuyer.executeQuery();
+            if (rsExistingBuyer.next()) {
                 return true;
             }
+        }catch (Exception e){
+            return false;
         }
         return false;
     }
@@ -72,12 +80,14 @@ public class BuyerManager {
     public void addBuyer(Buyer buyer) {
         expandBuyers();
         buyers[numOfBuyers++] = buyer;
-        Statement addBuyerStmt;
         try {
-            String query = STR."INSERT INTO buyers(id, name, password, addrID) VALUES (\{buyers.length},\{buyer.getName()},\{buyer.getPassword()},\{buyer.getAddressID()});";
-            addBuyerStmt = conn.createStatement();
-            addBuyerStmt.executeUpdate(query);
-            System.out.println("row inserted");
+            String query = "INSERT INTO buyers(name, password, addrID) VALUES (?,?,?);";
+            PreparedStatement ps = conn.prepareStatement(query);
+            ps.setString(1, buyer.getName());
+            ps.setString(2, buyer.getPassword());
+            ps.setInt(3, buyer.getAddressID());
+            ps.executeUpdate();
+            System.out.println("Added new buyer");
 
         } catch (Exception e) {
             System.out.println(e);

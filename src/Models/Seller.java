@@ -1,9 +1,6 @@
 package Models;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Arrays;
 
 public class Seller implements Comparable<Seller> {
@@ -12,7 +9,7 @@ public class Seller implements Comparable<Seller> {
     private Product[] products;
     int numOfProducts;
     ConnectionUtil db  =new ConnectionUtil();
-    Connection conn = db.connect_to_db("Supermarket","postgres","070103Sb");
+    Connection conn = db.connect_to_db("Supermarket","postgres","Matan25");
 
 
     public Seller(String name, String password) throws SQLException {
@@ -20,25 +17,47 @@ public class Seller implements Comparable<Seller> {
         this.password = password;
         products = new Product[0];
         numOfProducts = 0;
-        Statement st = conn.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM public.sellers WHERE name = '" + name + "'");
-        rs.next();
-        rs = st.executeQuery("SELECT * FROM public.products WHERE sellerID = " + rs.getInt("id"));
-        String prodName;
-        float prodPrice;
-        float prodPackagePrice;
-        Category prodCategory;
-        int prodSerialNum;
+        Statement retrieveSellerData = conn.createStatement();
+        String query = "SELECT * FROM public.sellers WHERE name = ?;";
+        PreparedStatement retrieveSeller = conn.prepareStatement(query);
+        retrieveSeller.setString(1, name);
+        ResultSet rs = retrieveSeller.executeQuery();
+        if(rs.next()) {
+            try{
+                query="SELECT * FROM public.products WHERE SName = ?;";
+                PreparedStatement retrieveProduct = conn.prepareStatement(query);
+                String sellerName = rs.getString("name");
+                retrieveProduct.setString(1, sellerName);
+                ResultSet rsProduct = retrieveProduct.executeQuery();
+                String prodName;
+                float prodPrice;
+                float prodPackagePrice;
+                Category prodCategory;
+                int prodSerialNum;
 
-        while (rs.next()) {
-            prodName = rs.getString("name");
-            prodPrice = rs.getFloat("price");
-            prodPackagePrice = rs.getFloat("packagePrice");
-            prodCategory = Models.Category.valueOf(rs.getString("category"));
-            prodSerialNum = rs.getInt("id");
-            expandList();
-            products[numOfProducts++] = new Product(prodName, prodPrice, prodCategory, prodPackagePrice, prodSerialNum);
-        };
+                while (rsProduct.next()) {
+                    prodName = rsProduct.getString("name");
+                    prodPrice = rsProduct.getFloat("price");
+                    prodPackagePrice = rsProduct.getFloat("packagePrice");
+                    prodCategory = Models.Category.valueOf(rsProduct.getString("category"));
+                    prodSerialNum = rsProduct.getInt("id");
+                    expandList();
+                    products[numOfProducts++] = new Product(prodName, prodPrice, prodCategory, prodPackagePrice, prodSerialNum);
+                }
+            }
+            catch(Exception e) {
+                System.out.println("This seller has no products on display");
+            }
+        }
+        else{
+            System.out.println("Adding new Seller");
+            Statement insertNewSeller = conn.createStatement();
+            query="INSERT INTO public.sellers(name,password) VALUES(?,?);";
+            PreparedStatement insertSeller = conn.prepareStatement(query);
+            insertSeller.setString(1, name);
+            insertSeller.setString(2, password);
+            insertSeller.executeUpdate();
+        }
     }
 
     public String getName() {
@@ -49,10 +68,10 @@ public class Seller implements Comparable<Seller> {
         return Arrays.copyOf(products, numOfProducts);
     }
 
-    public Product getProductByName(String name) {
+    public Product getProductByName(String name, String sellerName) {
         for (int i = 0; i < numOfProducts; i++) {
             if (products[i].getName().equals(name)) {
-                return ProductFactory.createProduct(products[i]);
+                return ProductFactory.getProductByName(products[i].getName(),sellerName);
             }
         }
         return null;
@@ -61,25 +80,7 @@ public class Seller implements Comparable<Seller> {
     public void addProduct(Product product) {
         expandList();
         products[numOfProducts++] = product;
-        int sellerID=0;
-        Statement getSellerID;
-        try {
-            String query = "SELECT * FROM public.sellers WHERE public.sellers.name = '"+this.name+"'";
-            getSellerID = conn.createStatement();
-            sellerID=getSellerID.executeQuery(query).getInt("id");
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        Statement addProduct;
-        try {
-            String query = STR."INSERT INTO public.products(id, name, category, price, packageprice, sellerid) VALUES (\{products.length},\{product.getName()},\{product.getCategory()},\{product.getPrice()},\{product.getPackagePrice()},\{sellerID});";
-            addProduct = conn.createStatement();
-            addProduct.executeUpdate(query);
-            System.out.println("row inserted");
-
-        } catch (Exception e) {
-            System.out.println(e);
-        }
+        System.out.println("Added new product: "+product.getName()+" to seller ");
     }
 
     private void expandList() {

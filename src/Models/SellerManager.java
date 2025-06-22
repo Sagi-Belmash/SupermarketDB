@@ -10,7 +10,7 @@ public class SellerManager {
     private Seller[] sellers;
     private int numOfSellers;
     ConnectionUtil db =new ConnectionUtil();
-    Connection conn= db.connect_to_db("Supermarket","postgres","070103Sb");
+    Connection conn= db.connect_to_db("Supermarket","postgres","Matan25");
 
     public SellerManager() throws SQLException {
         sellers = new Seller[0];
@@ -25,21 +25,13 @@ public class SellerManager {
             password = rs.getString("password");
             expandSellers();
             sellers[numOfSellers++] = new Seller(name, password);
+
         };
     }
 
     public void addSeller(Seller seller) {
         expandSellers();
         sellers[numOfSellers++] = seller;
-        Statement addSeller;
-        try {
-            String query = STR."INSERT INTO public.sellers(id, name, password) VALUES (\{sellers.length},\{seller.getName()},\{seller.getPassword()});";
-            addSeller = conn.createStatement();
-            addSeller.executeUpdate(query);
-            System.out.println("row inserted");
-        } catch (Exception e) {
-            System.out.println(e);
-        }
     }
 
     public boolean sellerExists(String name) {

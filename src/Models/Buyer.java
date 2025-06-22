@@ -1,9 +1,6 @@
 package Models;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -16,7 +13,7 @@ public class Buyer implements Comparable<Buyer> {
     private ShoppingCart[] orders;
     private int numOfOrders;
     private static ConnectionUtil db =new ConnectionUtil();
-    private static Connection conn= db.connect_to_db("Supermarkte","postgres","070103Sb");
+    private static Connection conn= db.connect_to_db("Supermarket","postgres","Matan25");
 
 
     public Buyer(String name, String password, Address address, int addressID) throws SQLException {
@@ -24,35 +21,58 @@ public class Buyer implements Comparable<Buyer> {
         this.password = password;
         this.address = address;
         this.addressID = addressID;
-        this.shoppingCart = ShoppingCartFactory.createNewShoppingCart(this);
-
         orders = new ShoppingCart[0];
         numOfOrders = 0;
-        Statement st = conn.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM public.buyers WHERE name = '" + name + "'");
-        rs.next();
-        rs = st.executeQuery("SELECT * FROM public.carts WHERE buyerID = " + rs.getInt("id"));
-        Statement stProducts = conn.createStatement();
-        float totalPrice;
-        Date date;
-        int id;
-        Product[] products;
-        int numOfProducts;
-        while (rs.next()) {
-            expandList();
-            numOfProducts = 0;
-            id = rs.getInt("id");
-            ResultSet rsCountProducts = stProducts.executeQuery("SELECT COUNT(*) FROM public.cartsProducts WHERE CID = " + rs.getInt("id"));
-            rsCountProducts.next();
-            products = new Product[rsCountProducts.getInt(1)];
-            ResultSet rsProducts = stProducts.executeQuery("SELECT * FROM public.cartsProducts WHERE CID = " + id);
-            while (rsProducts.next()) {
-                products[numOfProducts++] = ProductFactory.getProductById(rsProducts.getInt("PID"));
-                System.out.println("Bye!!!");
+        String query="SELECT * FROM public.buyers WHERE name = ?;";
+        PreparedStatement psExistingBuyer = conn.prepareStatement(query);
+        psExistingBuyer.setString(1, name);
+        ResultSet rs = psExistingBuyer.executeQuery();
+        if(rs.next()) {
+            try{
+                query="SELECT * FROM public.carts WHERE BName = ?;";
+                PreparedStatement psGetBuyerCarts = conn.prepareStatement(query);
+                psGetBuyerCarts.setString(1, name);
+                ResultSet rsGetBuyerCarts = psGetBuyerCarts.executeQuery();
+                float totalPrice;
+                Date date;
+                int cartID;
+                Product[] products;
+                int numOfProducts;
+                while (rsGetBuyerCarts.next()) {
+                    expandList();
+                    numOfProducts = 0;
+                    cartID = rs.getInt("id");
+                    query="SELECT COUNT(*) FROM public.cartsProducts WHERE CID = ?";
+                    PreparedStatement psCountBuyerCarts = conn.prepareStatement(query);
+                    psCountBuyerCarts.setInt(1, cartID);
+                    ResultSet rsCountBuyerCarts = psCountBuyerCarts.executeQuery();
+                    products = new Product[rsCountBuyerCarts.getInt(1)];
+                    query = "SELECT * FROM public.cartsProducts WHERE CID = ?;";
+                    PreparedStatement psGetProductsInCarts = conn.prepareStatement(query);
+                    psGetProductsInCarts.setInt(1, cartID);
+                    ResultSet rsGetProductsInCarts = psGetProductsInCarts.executeQuery();
+                    while (rsGetProductsInCarts.next()) {
+                        products[numOfProducts++] = ProductFactory.getProductById(rsGetProductsInCarts.getInt("PID"));
+                        System.out.println("added product: " + products[numOfProducts]);
+                    }
+                    totalPrice = rs.getFloat("totalPrice");
+                    date = rs.getDate("date");
+                    orders[numOfOrders++] = new ShoppingCart(this, products, date, totalPrice, cartID);
+                }
             }
-            totalPrice = rs.getFloat("totalPrice");
-            date = rs.getDate("date");
-            orders[numOfOrders++] = new ShoppingCart(this, products, date, totalPrice, id);
+            catch(SQLException e) {
+                System.out.println("this Buyer has an no past carts");
+            }
+        }
+        else {
+            System.out.println("Adding new Buyer");
+            query = "INSERT INTO public.buyers(name,password,addrID) VALUES(?,?,?);";
+            PreparedStatement psNewBuyer = conn.prepareStatement(query);
+            psNewBuyer.setString(1, name);
+            psNewBuyer.setString(2, password);
+            psNewBuyer.setInt(3, addressID);
+            psNewBuyer.executeUpdate();
+            this.shoppingCart = ShoppingCartFactory.createNewShoppingCart(this);
         }
     }
 
@@ -73,44 +93,35 @@ public class Buyer implements Comparable<Buyer> {
     }
 
     public void addItemToCart(Product product, int... quantity) {
-        shoppingCart.addProduct(product);
-        int buyerID=0;
-        Statement getBuyerID;
-        try {
-            String query = "SELECT * FROM public.buyers WHERE public.buyers.name = '"+this.name+"'";
-            getBuyerID = conn.createStatement();
-            buyerID=getBuyerID.executeQuery(query).getInt("id");
-        } catch (Exception e) {
-            System.out.println(e);
-        }
         int cartID=0;
-        Statement getCartID;
-        try {
-            String query = "SELECT * FROM public.carts WHERE buyerid = '"+buyerID+"' HAVING id=max(id)";
-            getCartID = conn.createStatement();
-            cartID=getCartID.executeQuery(query).getInt("id");
-        } catch (Exception e) {
-            System.out.println(e);
-        }
         int productID=0;
-        Statement getProdID;
         try {
-            String query = "SELECT * FROM sellers WHERE products.name = '"+ product.getName() +"'";
-            getProdID = conn.createStatement();
-            productID=getProdID.executeQuery(query).getInt("id");
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        Statement addProductToCart;
-        try {
-            String query;
-            if (quantity.length == 0) {
-                query = STR."INSERT INTO public.cartsProducts(CID, PID, amount) VALUES (\{cartID},\{productID},1);";
-            }else
-                query = STR."INSERT INTO public.cartsProducts(CID, PID, amount) VALUES (\{cartID},\{productID},\{quantity});";
-            addProductToCart = conn.createStatement();
-            addProductToCart.executeUpdate(query);
-            System.out.println("row inserted");
+            shoppingCart=ShoppingCartFactory.createNewShoppingCart(this);
+            String query = "SELECT id FROM public.carts WHERE BName = ?;";
+            PreparedStatement psGetOrCreateCart = conn.prepareStatement(query);
+            psGetOrCreateCart.setString(1,name);
+            ResultSet resultSet = psGetOrCreateCart.executeQuery();
+            if(resultSet.next()) {
+                cartID = resultSet.getInt("id");
+            } else{
+                cartID=shoppingCart.getID();
+            }
+            shoppingCart.addProduct(product);
+
+            query = "SELECT * FROM public.products WHERE name = ?;";
+            PreparedStatement psGetProdID = conn.prepareStatement(query);
+            psGetProdID.setString(1, product.getName());
+            ResultSet rsGetProdID = psGetProdID.executeQuery();
+            rsGetProdID.next();
+            productID = rsGetProdID.getInt(1);
+
+            query = "INSERT INTO public.cartsProducts(CID, PID, amount) VALUES (?,?,?);";
+            PreparedStatement psPutProductInCart = conn.prepareStatement(query);
+            psPutProductInCart.setInt(1, cartID);
+            psPutProductInCart.setInt(2, productID);
+            psPutProductInCart.setInt(3,1);
+            psPutProductInCart.executeUpdate();
+            System.out.println("Added item "+product.getName()+" to cart number "+cartID);
 
         } catch (Exception e) {
             System.out.println(e);
